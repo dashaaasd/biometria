@@ -1,76 +1,62 @@
 import os
-import time
 import torch
-import torch.nn as nn
-import torch.optim as optim
-
-from config import Config, train_transform_full
-from data import build_dataloaders
-from models import ViT_FER
-from utils import set_seed, get_scheduler, run_epoch
+from torchvision import transforms
 
 
-def main():
-    set_seed(Config.SEED)
+class Config:
+    DATA_PATH = r'C:\Users\levsh\Documents\FER2013-CNN-vs-ViT\data\fer2013'
+    MODEL_SAVE_PATH = r'C:\Users\levsh\Documents\FER2013-CNN-vs-ViT\models'
 
-    train_loader, val_loader, _ = build_dataloaders(Config)
+    IN_CHANNELS = 1
+    IMAGE_SIZE = 48
+    NUM_CLASSES = 7
 
-    model = ViT_FER(
-        img_size=Config.IMAGE_SIZE,
-        patch_size=Config.PATCH_SIZE,
-        in_channels=Config.IN_CHANNELS,
-        num_classes=Config.NUM_CLASSES,
-        embed_dim=Config.EMBED_DIM,
-        depth=Config.DEPTH,
-        num_heads=Config.NUM_HEADS,
-        dropout=0.1
-    ).to(Config.DEVICE)
-    print(f"ViT OK | Параметры: {sum(p.numel() for p in model.parameters()):,}")
+    BATCH_SIZE = 64
+    NUM_EPOCHS = 60
+    LEARNING_RATE = 5e-4
+    WEIGHT_DECAY = 3e-4
 
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    optimizer = optim.AdamW(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=Config.WEIGHT_DECAY)
-    scheduler = get_scheduler(optimizer, warmup_epochs=5, total_epochs=Config.NUM_EPOCHS)
-    use_amp = Config.DEVICE.type == 'cuda'
-    scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
+    # ViT параметры
+    PATCH_SIZE = 8
+    EMBED_DIM = 256
+    DEPTH = 6
+    NUM_HEADS = 8
 
-    best_acc = 0.0
-    best_path = os.path.join(Config.MODEL_SAVE_PATH, 'best_model_vit.pth')
-    start = time.time()
-
-    AUGMENT_EPOCH = 7
-
-    for epoch in range(1, Config.NUM_EPOCHS + 1):
-        print(f'\nЭпоха {epoch}/{Config.NUM_EPOCHS}  lr={optimizer.param_groups[0]["lr"]:.2e}')
-
-        if epoch == AUGMENT_EPOCH:
-            train_loader.dataset.dataset.transform = train_transform_full
-            print(f"RandomErasing включён с эпохи {epoch}")
-
-        train_loss, train_acc = run_epoch(model, train_loader, criterion,
-                                          optimizer, scaler, Config.DEVICE,
-                                          use_amp, training=True)
-        val_loss, val_acc = run_epoch(model, val_loader, criterion,
-                                      optimizer, scaler, Config.DEVICE,
-                                      use_amp, training=False)
-        scheduler.step()
-
-        print(f'  Train: loss: {train_loss:.4f}  acc: {train_acc:.2f}%')
-        print(f'  Val:   loss: {val_loss:.4f}  acc: {val_acc:.2f}%')
-
-        if val_acc > best_acc:
-            best_acc = val_acc
-            torch.save({
-                'epoch': epoch,
-                'model_state': model.state_dict(),
-                'optim_state': optimizer.state_dict(),
-                'val_acc': best_acc,
-            }, best_path)
-            print(f'Сохранена лучшая ViT-модель (acc={best_acc:.2f}%)')
-
-    elapsed = time.time() - start
-    print(f'\nОбучение ViT завершено за {elapsed/60:.1f} мин')
-    print(f'Лучшая val accuracy: {best_acc:.2f}%')
+    VAL_SPLIT = 0.2
+    NUM_WORKERS = 0 if os.name == 'nt' else 4
+    SEED = 42
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-if __name__ == '__main__':
-    main()
+os.makedirs(Config.MODEL_SAVE_PATH, exist_ok=True)
+
+# Трансформы
+train_transform_base = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
+    transforms.Resize((48, 48)),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomRotation(degrees=10),
+    transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+    transforms.ColorJitter(brightness=0.3, contrast=0.3),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5], std=[0.5])
+])
+
+train_transform_full = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
+    transforms.Resize((48, 48)),
+    transforms.RandomHorizontalFlip(p=0.5),
+    transforms.RandomRotation(degrees=10),
+    transforms.RandomAffine(degrees=0, translate=(0.1, 0.1)),
+    transforms.ColorJitter(brightness=0.3, contrast=0.3),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5], std=[0.5]),
+    transforms.RandomErasing(p=0.3, scale=(0.02, 0.1))
+])
+
+val_transform = transforms.Compose([
+    transforms.Grayscale(num_output_channels=1),
+    transforms.Resize((Config.IMAGE_SIZE, Config.IMAGE_SIZE)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.5], std=[0.5])
+])
