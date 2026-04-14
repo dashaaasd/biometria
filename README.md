@@ -81,8 +81,8 @@ data/fer2013/
 
 **4. Обучение**
 ```bash
-python train.py        # TT-GhostNetV2
-python train_base.py   # GhostNetV2-Base
+python train_cnn.py        
+python train_vit.py   
 ```
 
 **5. Оценка**
