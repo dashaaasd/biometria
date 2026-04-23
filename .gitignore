@@ -1,3 +1,6 @@
 # Датасеты 
 data/
 myenv/
+__pychache__/
+.vscode/
+
