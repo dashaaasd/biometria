@@ -57,7 +57,7 @@ cd GhostNetV2-TensorTrain-Project
 Сначала установить PyTorch: выбрать команду под свою версию CUDA на [pytorch.org](https://pytorch.org/get-started/locally/).
 Пример для CUDA 12.4:
 ```bash
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+
 ```
 Затем остальные зависимости:
 ```bash
@@ -69,6 +69,16 @@ pip install -r requirements.txt
 Скачать FER2013 с [Kaggle](https://www.kaggle.com/datasets/msambare/fer2013) и разложить в следующую структуру:
 ```
 data/fer2013/
+├── train/
+│   ├── angry/
+│   ├── disgust/
+│   └── ...
+└── test/
+    ├── angry/
+    └── ...
+Скачать ExpW с [Kaggle](https://www.kaggle.com/datasets/shahzadabbas/expression-in-the-wild-expw-dataset/data) и разложить в следующую структуру:
+```
+data/expression-in-the-wild-expw-dataset/
 ├── train/
 │   ├── angry/
 │   ├── disgust/

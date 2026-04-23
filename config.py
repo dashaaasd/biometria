@@ -4,8 +4,8 @@ from torchvision import transforms
 
 
 class Config:
-    DATA_PATH = r'C:\Users\levsh\Documents\FER2013-CNN-vs-ViT\data\fer2013'
-    MODEL_SAVE_PATH = r'C:\Users\levsh\Documents\FER2013-CNN-vs-ViT\models'
+    DATA_PATH = r'.\data\fer2013'
+    MODEL_SAVE_PATH = r'.\models'
 
     IN_CHANNELS = 1
     IMAGE_SIZE = 48
