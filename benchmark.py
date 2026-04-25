@@ -29,7 +29,7 @@ def benchmark_model(model, model_path, device, name="Model"):
 
     # Латентность на GPU
     model.eval()
-    dummy = torch.randn(1, 1, 48, 48).to(device)
+    dummy = torch.randn(1, Config.IN_CHANNELS, Config.IMAGE_SIZE, Config.IMAGE_SIZE).to(device)
 
     with torch.no_grad():
         for _ in range(20):
@@ -50,7 +50,7 @@ def benchmark_model(model, model_path, device, name="Model"):
 
     # Латентность на CPU
     model_cpu = model.cpu()
-    dummy_cpu = torch.randn(1, 1, 48, 48)
+    dummy_cpu = torch.randn(1, Config.IN_CHANNELS, Config.IMAGE_SIZE, Config.IMAGE_SIZE)
 
     with torch.no_grad():
         for _ in range(10):
@@ -80,8 +80,12 @@ def benchmark_model(model, model_path, device, name="Model"):
 
 
 def main():
+    print(f"\n{'='*70}")
+    print(f"  БЕНЧМАРК: {Config.DATA_PATH} ({Config.IMAGE_SIZE}×{Config.IMAGE_SIZE})")
+    print(f"{'='*70}")
+
     # CNN
-    cnn_path = os.path.join(Config.MODEL_SAVE_PATH, 'best_model_cnn.pth')
+    cnn_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_CNN_NAME)
     cnn_model = GhostNetV2_FER(num_classes=Config.NUM_CLASSES, dropout=0.3).to(Config.DEVICE)
     cnn_ckpt = torch.load(cnn_path, map_location=Config.DEVICE)
     cnn_model.load_state_dict(cnn_ckpt['model_state'])
@@ -89,7 +93,7 @@ def main():
     cnn_results = benchmark_model(cnn_model, cnn_path, Config.DEVICE, name="CNN (GhostNetV2)")
 
     # ViT
-    vit_path = os.path.join(Config.MODEL_SAVE_PATH, 'best_model_vit.pth')
+    vit_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME)
     vit_model = ViT_FER(
         img_size=Config.IMAGE_SIZE,
         patch_size=Config.PATCH_SIZE,

@@ -97,9 +97,26 @@ python train_vit.py
 
 **5. Оценка**
 ```bash
-python evaluate.py     # точность на тесте + confusion matrix (обе модели)
+python test.py     # точность на тесте + confusion matrix (обе модели)
 python benchmark.py    # число параметров, размер модели, латентность GPU/CPU
 ```
+# В config.py: Config = ConfigFER
+python train_cnn.py
+python train_vit.py
+python test.py
+python benchmark.py
+
+# В config.py: Config = ConfigExpW
+python train_cnn.py
+python train_vit.py
+python test.py
+python benchmark.py
+
+# В config.py: Config = ConfigGFFD
+python train_cnn.py
+python train_vit.py
+python test.py
+python benchmark.py
 
 ## Требования
 
