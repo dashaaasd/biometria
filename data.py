@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import ImageFolder
 
-from config import train_transform_base, val_transform
+from config import Config, get_train_transform, get_val_transform
 
 
 def build_dataloaders(cfg):
@@ -13,7 +13,10 @@ def build_dataloaders(cfg):
     assert os.path.exists(train_path), f"Нет папки train: {train_path}"
     assert os.path.exists(test_path), f"Нет папки test: {test_path}"
 
-    full_train = ImageFolder(train_path, transform=train_transform_base)
+    train_transform = get_train_transform(cfg.IMAGE_SIZE)
+    val_transform = get_val_transform(cfg.IMAGE_SIZE)
+
+    full_train = ImageFolder(train_path, transform=train_transform)
     test_ds = ImageFolder(test_path, transform=val_transform)
 
     n_val = int(len(full_train) * cfg.VAL_SPLIT)
@@ -34,6 +37,8 @@ def build_dataloaders(cfg):
                              shuffle=False, num_workers=cfg.NUM_WORKERS,
                              pin_memory=True)
 
+    print(f"Датасет: {cfg.DATA_PATH}")
+    print(f"Размер изображений: {cfg.IMAGE_SIZE}×{cfg.IMAGE_SIZE}")
     print(f"Train: {n_train} | Val: {n_val} | Test: {len(test_ds)}")
     print(f"Классы: {full_train.classes}")
     return train_loader, val_loader, test_loader

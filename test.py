@@ -52,10 +52,14 @@ def save_confusion_matrix(all_preds, all_labels, model_name, save_path):
 
 
 def main():
+    print(f"\n{'='*60}")
+    print(f"  ТЕСТИРОВАНИЕ: {Config.DATA_PATH}")
+    print(f"{'='*60}")
+
     _, _, test_loader = build_dataloaders(Config)
 
-    # CNN (GhostNetV2)
-    cnn_path = os.path.join(Config.MODEL_SAVE_PATH, 'best_model_cnn.pth')
+    # CNN
+    cnn_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_CNN_NAME)
     cnn_model = GhostNetV2_FER(num_classes=Config.NUM_CLASSES, dropout=0.3).to(Config.DEVICE)
     checkpoint = torch.load(cnn_path, map_location=Config.DEVICE)
     cnn_model.load_state_dict(checkpoint['model_state'])
@@ -63,10 +67,11 @@ def main():
 
     cnn_preds, cnn_labels = evaluate(cnn_model, test_loader, Config.DEVICE)
     cnn_acc = print_metrics(cnn_preds, cnn_labels, 'CNN (GhostNetV2)')
-    save_confusion_matrix(cnn_preds, cnn_labels, 'CNN-GhostNetV2', 'confusion_matrix_cnn.png')
+    save_confusion_matrix(cnn_preds, cnn_labels, 'CNN-GhostNetV2',
+                          f'confusion_matrix_cnn_{Config.DATA_PATH.split(chr(92))[-1]}.png')
 
     # ViT
-    vit_path = os.path.join(Config.MODEL_SAVE_PATH, 'best_model_vit.pth')
+    vit_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME)
     vit_model = ViT_FER(
         img_size=Config.IMAGE_SIZE,
         patch_size=Config.PATCH_SIZE,
@@ -83,7 +88,8 @@ def main():
 
     vit_preds, vit_labels = evaluate(vit_model, test_loader, Config.DEVICE)
     vit_acc = print_metrics(vit_preds, vit_labels, 'Vision Transformer (ViT)')
-    save_confusion_matrix(vit_preds, vit_labels, 'ViT', 'confusion_matrix_vit.png')
+    save_confusion_matrix(vit_preds, vit_labels, 'ViT',
+                          f'confusion_matrix_vit_{Config.DATA_PATH.split(chr(92))[-1]}.png')
 
     # Сравнение
     print("\n" + "=" * 60)

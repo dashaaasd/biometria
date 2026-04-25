@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from config import Config, train_transform_full
+from config import Config, get_train_transform_full
 from data import build_dataloaders
 from models import ViT_FER
 from utils import set_seed, get_scheduler, run_epoch
@@ -26,6 +26,8 @@ def main():
         dropout=0.1
     ).to(Config.DEVICE)
     print(f"ViT OK | Параметры: {sum(p.numel() for p in model.parameters()):,}")
+    print(f"  img_size={Config.IMAGE_SIZE}, patch_size={Config.PATCH_SIZE}")
+    print(f"  патчей: {(Config.IMAGE_SIZE // Config.PATCH_SIZE) ** 2}")
 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
     optimizer = optim.AdamW(model.parameters(), lr=Config.LEARNING_RATE, weight_decay=Config.WEIGHT_DECAY)
@@ -34,7 +36,7 @@ def main():
     scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
 
     best_acc = 0.0
-    best_path = os.path.join(Config.MODEL_SAVE_PATH, 'best_model_vit.pth')
+    best_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME)
     start = time.time()
 
     AUGMENT_EPOCH = 7
@@ -43,7 +45,7 @@ def main():
         print(f'\nЭпоха {epoch}/{Config.NUM_EPOCHS}  lr={optimizer.param_groups[0]["lr"]:.2e}')
 
         if epoch == AUGMENT_EPOCH:
-            train_loader.dataset.dataset.transform = train_transform_full
+            train_loader.dataset.dataset.transform = get_train_transform_full(Config.IMAGE_SIZE)
             print(f"RandomErasing включён с эпохи {epoch}")
 
         train_loss, train_acc = run_epoch(model, train_loader, criterion,
@@ -64,6 +66,11 @@ def main():
                 'model_state': model.state_dict(),
                 'optim_state': optimizer.state_dict(),
                 'val_acc': best_acc,
+                'config': {
+                    'image_size': Config.IMAGE_SIZE,
+                    'patch_size': Config.PATCH_SIZE,
+                    'dataset': Config.DATA_PATH,
+                }
             }, best_path)
             print(f'Сохранена лучшая ViT-модель (acc={best_acc:.2f}%)')
 
