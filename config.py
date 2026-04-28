@@ -2,98 +2,80 @@ import os
 import torch
 from torchvision import transforms
 
+# КОНФИГУРАЦИИ ДЛЯ ТРЁХ ДАТАСЕТОВ
 
 class ConfigFER:
-    """Конфигурация для датасета FER2013 (48×48)"""
+    """FER2013 (48×48)"""
     DATA_PATH = r'.\data\fer2013'
     MODEL_SAVE_PATH = r'.\models'
-
     IN_CHANNELS = 1
     IMAGE_SIZE = 48
     NUM_CLASSES = 7
-
     BATCH_SIZE = 64
     NUM_EPOCHS = 60
     LEARNING_RATE = 5e-4
     WEIGHT_DECAY = 3e-4
-
-    # ViT параметры
-    PATCH_SIZE = 8          # 48/8 = 6×6 = 36 патчей
+    PATCH_SIZE = 8
     EMBED_DIM = 256
     DEPTH = 6
     NUM_HEADS = 8
-
     VAL_SPLIT = 0.2
     NUM_WORKERS = 0 if os.name == 'nt' else 4
     SEED = 42
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     MODEL_CNN_NAME = 'best_model_cnn_fer.pth'
     MODEL_VIT_NAME = 'best_model_vit_fer.pth'
 
 
 class ConfigExpW:
-    """Конфигурация для датасета ExpW (224×224)"""
+    """ExpW (224×224)"""
     DATA_PATH = r'.\data\expw'
     MODEL_SAVE_PATH = r'.\models'
-
     IN_CHANNELS = 1
     IMAGE_SIZE = 224
     NUM_CLASSES = 7
-
-    BATCH_SIZE = 32          # уменьшен, т.к. 224×224 занимает больше памяти
-    NUM_EPOCHS = 60
-    LEARNING_RATE = 5e-4
-    WEIGHT_DECAY = 3e-4
-
-    # ViT параметры
-    PATCH_SIZE = 16          # 224/16 = 14×14 = 196 патчей
-    EMBED_DIM = 256
-    DEPTH = 6
-    NUM_HEADS = 8
-
-    VAL_SPLIT = 0.2
-    NUM_WORKERS = 0 if os.name == 'nt' else 4
-    SEED = 42
-    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    MODEL_CNN_NAME = 'best_model_cnn_expw.pth'
-    MODEL_VIT_NAME = 'best_model_vit_expw.pth'
-
-class ConfigGFFD:
-    """Конфигурация для GFFD-2025 (224×224, Genuine/Fake)"""
-    DATA_PATH = r'.\data\gffd2025'
-    MODEL_SAVE_PATH = r'.\models'
-    
-    IN_CHANNELS = 1
-    IMAGE_SIZE = 224
-    # При использовании разметки из 14 классов (7 эмоций × 2 подлинности)
-    # NUM_CLASSES = 14 
-    # Пока оставляем 7, если нужно сравнивать только эмоции на первом этапе
-    NUM_CLASSES = 7 
-
     BATCH_SIZE = 32
     NUM_EPOCHS = 60
     LEARNING_RATE = 5e-4
     WEIGHT_DECAY = 3e-4
-
-    # ViT параметры (такие же, как у ExpW из-за размера 224)
     PATCH_SIZE = 16
     EMBED_DIM = 256
     DEPTH = 6
     NUM_HEADS = 8
-
     VAL_SPLIT = 0.2
     NUM_WORKERS = 0 if os.name == 'nt' else 4
     SEED = 42
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
+    MODEL_CNN_NAME = 'best_model_cnn_expw.pth'
+    MODEL_VIT_NAME = 'best_model_vit_expw.pth'
+
+
+class ConfigGFFD:
+    """GFFD-2025 (224×224)"""
+    DATA_PATH = r'.\data\gffd2025'
+    MODEL_SAVE_PATH = r'.\models'
+    IN_CHANNELS = 1
+    IMAGE_SIZE = 224
+    NUM_CLASSES = 7
+    BATCH_SIZE = 32
+    NUM_EPOCHS = 60
+    LEARNING_RATE = 5e-4
+    WEIGHT_DECAY = 3e-4
+    PATCH_SIZE = 16
+    EMBED_DIM = 256
+    DEPTH = 6
+    NUM_HEADS = 8
+    VAL_SPLIT = 0.2
+    NUM_WORKERS = 0 if os.name == 'nt' else 4
+    SEED = 42
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     MODEL_CNN_NAME = 'best_model_cnn_gffd.pth'
     MODEL_VIT_NAME = 'best_model_vit_gffd.pth'
-# ФУНКЦИИ ДЛЯ ТРАНСФОРМОВ (принимают размер как аргумент)
+
+
+# ФУНКЦИИ ТРАНСФОРМОВ
 
 def get_train_transform(image_size):
-    """Базовые аугментации (эпохи 1–6)"""
     return transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Resize((image_size, image_size)),
@@ -107,7 +89,6 @@ def get_train_transform(image_size):
 
 
 def get_train_transform_full(image_size):
-    """Расширенные аугментации с RandomErasing (с эпохи 7)"""
     return transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Resize((image_size, image_size)),
@@ -122,7 +103,6 @@ def get_train_transform_full(image_size):
 
 
 def get_val_transform(image_size):
-    """Детерминированный пайплайн для валидации и теста"""
     return transforms.Compose([
         transforms.Grayscale(num_output_channels=1),
         transforms.Resize((image_size, image_size)),
@@ -130,11 +110,10 @@ def get_val_transform(image_size):
         transforms.Normalize(mean=[0.5], std=[0.5]),
     ])
 
-# АКТИВНЫЙ КОНФИГ (меняй здесь, какая конфигурация используется)
-Config = ConfigFER        # FER2013
-# Config = ConfigExpW     # ExpW
-# Config = ConfigGFFD     # GFFD-2025
+# АКТИВНЫЙ КОНФИГ (меняй здесь)
+#Config = ConfigFER        # FER2013
+#Config = ConfigExpW     # ExpW
+#Config = ConfigGFFD     # GFFD-2025
 
 
-# Совместимость со старым кодом (если где-то ещё используются старые названия)
 os.makedirs(Config.MODEL_SAVE_PATH, exist_ok=True)
