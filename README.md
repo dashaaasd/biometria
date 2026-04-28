@@ -6,24 +6,15 @@
 
 ## Датасеты
 
-### 1. FER2013
-- **Классы:** angry, disgust, fear, happy, neutral, sad, surprise
-- **Размер:** 48×48 пикселей, градации серого
-- **Train:** 22 967 · **Val:** 5 742 · **Test:** 3 589
-- **Особенности:** низкое разрешение, шум разметки, дисбаланс классов
+## Датасеты
 
-### 2. ExpW (Expression in-the-Wild)
-- **Классы:** angry, disgust, fear, happy, neutral, sad, surprise
-- **Размер:** полноразмерные изображения → 224×224
-- **Train:** ~73 435 · **Val:** ~18 358 · **Test:** ~18 358
-- **Особенности:** высокое разрешение, in-the-wild условия, сильный дисбаланс
-
-### 3. GFFD-2025 (Genuine and Fake Facial Emotion Dataset)
-- **Классы:** angry, disgust, fear, happy, neutral, sad, surprise
-  - Каждая эмоция делится на **Genuine** (искренняя) и **Fake** (наигранная) → 14 подклассов
-  - В рамках эксперимента Genuine и Fake объединены → 7 классов
-- **Размер:** 224×224 пикселей, RGB → градации серого
-- **Особенности:** лабораторные условия, контролируемое освещение
+| # | Датасет | Разрешение | Train | Test | Особенности |
+|---|---|---|---|---|---|
+| 1 | **FER2013** | 48×48 | 22 967 | 3 589 | Низкое разрешение, шум, дисбаланс |
+| 2 | **ExpW** | 224×224 | ~73 435 | ~18 358 | Высокое разрешение, in-the-wild |
+| 3 | **ExpW_48** | 48×48 | ~73 435 | ~18 358 | ExpW, уменьшенный до 48×48 |
+| 4 | **GFFD-2025** | 224×224 | ~1 200 | ~300 | Лабораторное качество |
+| 5 | **GFFD-2025_48** | 48×48 | ~1 200 | ~300 | GFFD, уменьшенный до 48×48 |
 
 ## Архитектура(дописать)
 
@@ -176,23 +167,32 @@ python test.py     # точность на тесте + confusion matrix (обе
 python benchmark.py    # число параметров, размер модели, латентность GPU/CPU
 ```
 
-# В config.py: Config = ConfigFER
-python train_cnn.py
-python train_vit.py
-python test.py
-python benchmark.py
+### Полный цикл экспериментов
 
-# В config.py: Config = ConfigExpW
-python train_cnn.py
-python train_vit.py
-python test.py
-python benchmark.py
+```bash
+# FER2013 (оригинал 48×48)
+Config = ConfigFER
+python train_cnn.py && python train_vit.py && python test.py
 
-# В config.py: Config = ConfigGFFD
-python train_cnn.py
-python train_vit.py
-python test.py
+# ExpW (оригинал 224×224)
+Config = ConfigExpW
+python train_cnn.py && python train_vit.py && python test.py
+
+# ExpW degraded (48×48)
+Config = ConfigExpW_48
+python train_cnn.py && python train_vit.py && python test.py
+
+# GFFD-2025 (оригинал 224×224)
+Config = ConfigGFFD
+python train_cnn.py && python train_vit.py && python test.py
+
+# GFFD-2025 degraded (48×48)
+Config = ConfigGFFD_48
+python train_cnn.py && python train_vit.py && python test.py
+
+# Бенчмарк для каждого
 python benchmark.py
+```
 
 ## Требования
 
