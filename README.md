@@ -70,10 +70,10 @@ myenv\Scripts\activate        # Windows
 ```
 
 Сначала установить PyTorch: выбрать команду под свою версию CUDA на [pytorch.org](https://pytorch.org/get-started/locally/).
-Пример для CUDA 12.6:
+Пример для CUDA 12.4:
 
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 ```
 
 Затем остальные зависимости:
@@ -112,7 +112,7 @@ cd "data/expression-in-the-wild-expw-dataset/versions/1"
 2)Запустить prepare-скрипт:
 
 ```bash
-python prepare_expw.py
+python convert_dataset.py
 ```
 
 Результат: data/expw/train/ и data/expw/test/ с 7 папками.
@@ -172,7 +172,7 @@ python benchmark.py    # число параметров, размер моде�
 ```bash
 # FER2013 (оригинал 48×48)
 Config = ConfigFER
-python train_cnn.py && python train_vit.py && python test.py
+py train_cnn.py && py train_vit.py && py test.py
 
 # ExpW (оригинал 224×224)
 Config = ConfigExpW

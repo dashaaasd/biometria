@@ -3,4 +3,5 @@ data/
 myenv/
 __pychache__/
 .vscode/
-
+.mypy_cache
+../__pychache__/

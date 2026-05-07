@@ -72,6 +72,50 @@ class ConfigGFFD:
     MODEL_CNN_NAME = 'best_model_cnn_gffd.pth'
     MODEL_VIT_NAME = 'best_model_vit_gffd.pth'
 
+class ConfigExpW_48:
+    """ExpW degraded (48×48)"""
+    DATA_PATH = r'.\data\expw_48'
+    MODEL_SAVE_PATH = r'.\models'
+    IN_CHANNELS = 1
+    IMAGE_SIZE = 48
+    NUM_CLASSES = 7
+    BATCH_SIZE = 64
+    NUM_EPOCHS = 60
+    LEARNING_RATE = 5e-4
+    WEIGHT_DECAY = 3e-4
+    PATCH_SIZE = 8
+    EMBED_DIM = 256
+    DEPTH = 6
+    NUM_HEADS = 8
+    VAL_SPLIT = 0.2
+    NUM_WORKERS = 0 if os.name == 'nt' else 4
+    SEED = 42
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    MODEL_CNN_NAME = 'best_model_cnn_expw_48.pth'
+    MODEL_VIT_NAME = 'best_model_vit_expw_48.pth'
+
+
+class ConfigGFFD_48:
+    """GFFD-2025 degraded (48×48)"""
+    DATA_PATH = r'.\data\gffd2025_48'
+    MODEL_SAVE_PATH = r'.\models'
+    IN_CHANNELS = 1
+    IMAGE_SIZE = 48
+    NUM_CLASSES = 7
+    BATCH_SIZE = 64
+    NUM_EPOCHS = 60
+    LEARNING_RATE = 5e-4
+    WEIGHT_DECAY = 3e-4
+    PATCH_SIZE = 8
+    EMBED_DIM = 256
+    DEPTH = 6
+    NUM_HEADS = 8
+    VAL_SPLIT = 0.2
+    NUM_WORKERS = 0 if os.name == 'nt' else 4
+    SEED = 42
+    DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    MODEL_CNN_NAME = 'best_model_cnn_gffd_48.pth'
+    MODEL_VIT_NAME = 'best_model_vit_gffd_48.pth'
 
 # ФУНКЦИИ ТРАНСФОРМОВ
 
@@ -111,9 +155,10 @@ def get_val_transform(image_size):
     ])
 
 # АКТИВНЫЙ КОНФИГ (меняй здесь)
-#Config = ConfigFER        # FER2013
+Config = ConfigFER        # FER2013
 #Config = ConfigExpW     # ExpW
 #Config = ConfigGFFD     # GFFD-2025
-
+# Config = ConfigExpW_48 #ухудшенный ExpW
+# Config = ConfigGFFD_48 #ухудшенный GFFD-2025
 
 os.makedirs(Config.MODEL_SAVE_PATH, exist_ok=True)
