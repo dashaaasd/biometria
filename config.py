@@ -16,8 +16,8 @@ class ConfigFER:
     IMAGE_SIZE      = 48
     NUM_CLASSES     = 7
     BATCH_SIZE      = 64
-    NUM_EPOCHS      = 60
-    LEARNING_RATE   = 5e-4
+    NUM_EPOCHS      = 50
+    LEARNING_RATE   = 1e-4
     WEIGHT_DECAY    = 3e-4
     PATCH_SIZE      = 8
     EMBED_DIM       = 256
