@@ -11,8 +11,8 @@ matplotlib.use('Agg')
 
 from config import Config
 from data import build_dataloaders
-from cnn_model import GhostNetV2_FER
-from vit_model import ViT_FER
+from models.cnn_model import GhostNetV2_FER
+from models.vit_model import ViT_FER
 
 CLASS_NAMES = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 

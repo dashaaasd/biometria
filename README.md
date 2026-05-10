@@ -191,7 +191,7 @@ Config = ConfigGFFD_48
 python train_cnn.py && python train_vit.py && python test.py
 
 # Бенчмарк для каждого
-python benchmark.py
+py benchmark.py
 ```
 
 ## Требования

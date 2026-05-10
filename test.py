@@ -7,8 +7,8 @@ from sklearn.metrics import confusion_matrix, classification_report
 
 from config import Config
 from data import build_dataloaders
-from cnn_model import GhostNetV2_FER
-from vit_model import ViT_FER
+from models.cnn_model import GhostNetV2_FER
+from models.vit_model import ViT_FER
 
 
 CLASS_NAMES = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
