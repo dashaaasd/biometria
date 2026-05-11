@@ -80,53 +80,6 @@ class ConfigGFFD:
     CLASS_WEIGHTS   = 'auto'
 
 
-class ConfigExpW_48:
-    """ExpW degraded (48x48, grayscale)"""
-    DATA_PATH       = r'.\data\expw_48'
-    MODEL_SAVE_PATH = r'.\models'
-    IN_CHANNELS     = 1
-    IMAGE_SIZE      = 48
-    NUM_CLASSES     = 7
-    BATCH_SIZE      = 32
-    NUM_EPOCHS      = 50
-    LEARNING_RATE   = 1e-4
-    WEIGHT_DECAY    = 3e-4
-    PATCH_SIZE      = 8
-    EMBED_DIM       = 256
-    DEPTH           = 4
-    NUM_HEADS       = 8
-    VAL_SPLIT       = 0.2
-    NUM_WORKERS     = 4
-    SEED            = 42
-    DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    MODEL_CNN_NAME  = 'best_model_cnn_expw_48.pth'
-    MODEL_VIT_NAME  = 'best_model_vit_expw_48.pth'
-    CLASS_WEIGHTS   = 'auto'
-
-
-class ConfigGFFD_48:
-    """GFFD-2025 degraded (48x48, grayscale)"""
-    DATA_PATH       = r'.\data\gffd2025_48'
-    MODEL_SAVE_PATH = r'.\models'
-    IN_CHANNELS     = 1
-    IMAGE_SIZE      = 48
-    NUM_CLASSES     = 7
-    BATCH_SIZE      = 32
-    NUM_EPOCHS      = 50
-    LEARNING_RATE   = 1e-4
-    WEIGHT_DECAY    = 3e-4
-    PATCH_SIZE      = 8
-    EMBED_DIM       = 256
-    DEPTH           = 4
-    NUM_HEADS       = 8
-    VAL_SPLIT       = 0.2
-    NUM_WORKERS     = 4
-    SEED            = 42
-    DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    MODEL_CNN_NAME  = 'best_model_cnn_gffd_48.pth'
-    MODEL_VIT_NAME  = 'best_model_vit_gffd_48.pth'
-    CLASS_WEIGHTS   = 'auto'
-
 
 # Трансформы — отдельные для grayscale (in_channels=1) и RGB (in_channels=3)
 # RGB нормализуется по статистике ImageNet
@@ -204,7 +157,5 @@ def get_val_transform(image_size, in_channels=1):
 # Config = ConfigFER
 Config = ConfigExpW
 # Config = ConfigGFFD
-# Config = ConfigExpW_48
-# Config = ConfigGFFD_48
 
 os.makedirs(Config.MODEL_SAVE_PATH, exist_ok=True)

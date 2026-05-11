@@ -176,19 +176,11 @@ py train_cnn.py && py train_vit.py && py test.py
 
 # ExpW (оригинал 224×224)
 Config = ConfigExpW
-python train_cnn.py && python train_vit.py && python test.py
-
-# ExpW degraded (48×48)
-Config = ConfigExpW_48
-python train_cnn.py && python train_vit.py && python test.py
+py train_cnn.py && py train_vit.py && py test.py
 
 # GFFD-2025 (оригинал 224×224)
 Config = ConfigGFFD
-python train_cnn.py && python train_vit.py && python test.py
-
-# GFFD-2025 degraded (48×48)
-Config = ConfigGFFD_48
-python train_cnn.py && python train_vit.py && python test.py
+py train_cnn.py && py train_vit.py && py test.py
 
 # Бенчмарк для каждого
 py benchmark.py
