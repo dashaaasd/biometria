@@ -15,7 +15,7 @@ class ConfigFER:
     IN_CHANNELS     = 1
     IMAGE_SIZE      = 48
     NUM_CLASSES     = 7
-    BATCH_SIZE      = 64
+    BATCH_SIZE      = 32
     NUM_EPOCHS      = 50
     LEARNING_RATE   = 1e-4
     WEIGHT_DECAY    = 3e-4
@@ -64,7 +64,7 @@ class ConfigGFFD:
     IMAGE_SIZE      = 224
     NUM_CLASSES     = 7
     BATCH_SIZE      = 32
-    NUM_EPOCHS      = 12
+    NUM_EPOCHS      = 50
     LEARNING_RATE   = 1e-4
     WEIGHT_DECAY    = 3e-4
     PATCH_SIZE      = 16
@@ -87,8 +87,8 @@ class ConfigExpW_48:
     IN_CHANNELS     = 1
     IMAGE_SIZE      = 48
     NUM_CLASSES     = 7
-    BATCH_SIZE      = 64
-    NUM_EPOCHS      = 12
+    BATCH_SIZE      = 32
+    NUM_EPOCHS      = 50
     LEARNING_RATE   = 1e-4
     WEIGHT_DECAY    = 3e-4
     PATCH_SIZE      = 8
@@ -111,8 +111,8 @@ class ConfigGFFD_48:
     IN_CHANNELS     = 1
     IMAGE_SIZE      = 48
     NUM_CLASSES     = 7
-    BATCH_SIZE      = 64
-    NUM_EPOCHS      = 12
+    BATCH_SIZE      = 32
+    NUM_EPOCHS      = 50
     LEARNING_RATE   = 1e-4
     WEIGHT_DECAY    = 3e-4
     PATCH_SIZE      = 8
