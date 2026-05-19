@@ -2,7 +2,7 @@ import os
 import torch
 from torchvision import transforms
 
-# КОНФИГУРАЦИИ ДЛЯ ПЯТИ ДАТАСЕТОВ
+# КОНФИГУРАЦИИ ДЛЯ ДАТАСЕТОВ
 #
 # Каналы:
 #   IN_CHANNELS=1 — FER2013 (серый), ExpW_48 и GFFD_48 (деградированы в grayscale)
@@ -26,6 +26,8 @@ class ConfigFER:
     VAL_SPLIT       = 0.2
     NUM_WORKERS     = 4
     SEED            = 42
+    DROPOUT      = 0.3    
+    VIT_DROPOUT  = 0.1
     DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     MODEL_CNN_NAME  = 'best_model_cnn_fer.pth'
     MODEL_VIT_NAME  = 'best_model_vit_fer.pth'
@@ -49,13 +51,15 @@ class ConfigExpW:
     NUM_HEADS       = 8
     VAL_SPLIT       = 0.2
     NUM_WORKERS     = 4
+    DROPOUT      = 0.5    
+    VIT_DROPOUT  = 0.1    
     SEED            = 42
     DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     MODEL_CNN_NAME  = 'best_model_cnn_expw.pth'
     MODEL_VIT_NAME  = 'best_model_vit_expw.pth'
     CLASS_WEIGHTS   = 'auto'
 
-
+'''
 class ConfigGFFD:
     """GFFD-2025 (224x224, RGB)"""
     DATA_PATH       = r'.\data\gffd2025'
@@ -78,8 +82,7 @@ class ConfigGFFD:
     MODEL_CNN_NAME  = 'best_model_cnn_gffd.pth'
     MODEL_VIT_NAME  = 'best_model_vit_gffd.pth'
     CLASS_WEIGHTS   = 'auto'
-
-
+'''
 
 # Трансформы — отдельные для grayscale (in_channels=1) и RGB (in_channels=3)
 # RGB нормализуется по статистике ImageNet
@@ -154,8 +157,7 @@ def get_val_transform(image_size, in_channels=1):
 
 
 # Активный конфиг (меняй здесь)
-# Config = ConfigFER
+#Config = ConfigFER
 Config = ConfigExpW
-# Config = ConfigGFFD
 
 os.makedirs(Config.MODEL_SAVE_PATH, exist_ok=True)

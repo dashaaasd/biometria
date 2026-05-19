@@ -1,5 +1,6 @@
 """
-Разбивка GFFD-2025: объединение Genuine/Fake, разбивка 80/20.
+Разбивка GFFD-2025: объединение CroppedDataset + raw (Fake/Genuine из обеих папок).
+Каждая папка-источник имеет префикс, чтобы избежать перезаписи.
 """
 import os
 import shutil
@@ -7,7 +8,12 @@ import random
 from pathlib import Path
 from collections import Counter
 
-RAW_DIR   = Path(r'.\data\CroppedDataset')
+# Два источника с одинаковой структурой (Эмоция/Fake, Эмоция/Genuine)
+SOURCE_DIRS = [
+    Path(r'.\data\CroppedDataset'),
+    Path(r'.\data\Raw'),
+]
+
 OUT_DIR   = Path(r'.\data\gffd2025')
 TRAIN_RATIO = 0.8
 SEED        = 42
@@ -15,53 +21,128 @@ SEED        = 42
 EMOTIONS = ['Angry', 'Disgust', 'Fear', 'Happy', 'Neutral', 'Sad', 'Surprise']
 EMOTION_MAP = {e.lower(): e.lower() for e in EMOTIONS}
 
+def collect_files(source_dir):
+    """
+    Собирает все файлы из папки-источника.
+    Возвращает: { emotion: [(src_path, subtype, fname), ...] }
+    """
+    data = {e.lower(): [] for e in EMOTIONS}
+    exts = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp'}
+    
+    for emo in EMOTIONS:
+        emo_lower = emo.lower()
+        for subtype in ['Genuine', 'Fake']:
+            src = source_dir / emo / subtype
+            if src.is_dir():
+                for fname in os.listdir(src):
+                    if Path(fname).suffix.lower() in exts:
+                        data[emo_lower].append((src / fname, subtype, fname))
+    return data
+
 def main():
     random.seed(SEED)
 
-    # Создаём структуру
+    # Очищаем выходную папку
+    if OUT_DIR.exists():
+        shutil.rmtree(OUT_DIR)
+
     for split in ['train', 'test']:
         for emo in EMOTION_MAP.values():
             (OUT_DIR / split / emo).mkdir(parents=True, exist_ok=True)
 
-    stats = {'train': Counter(), 'test': Counter()}
+    stats_source = {src.name: Counter() for src in SOURCE_DIRS}
+    stats_train  = Counter()
+    stats_test   = Counter()
 
-    for emo_folder in EMOTIONS:
-        emo_lower = emo_folder.lower()
-        files = []
+    for emo in EMOTIONS:
+        emo_lower = emo.lower()
+        all_files = []
+        seen_names = set()  # для отслеживания дубликатов имён из разных источников
 
-        for subtype in ['Genuine', 'Fake']:
-            src = RAW_DIR / emo_folder / subtype
-            if src.is_dir():
-                for fname in os.listdir(src):
-                    if fname.lower().endswith(('.jpg', '.jpeg', '.png')):
-                        files.append((src / fname, fname))
+        for src_dir in SOURCE_DIRS:
+            data = collect_files(src_dir)
+            src_alias = src_dir.name  # 'CroppedDataset' или 'raw'
+            
+            for src_path, subtype, fname in data[emo_lower]:
+                # Уникальное имя: префикс из названия источника + подтип
+                prefix = f"{src_alias}_{subtype.lower()}"
+                new_name = f"{prefix}_{fname}"
+                
+                # На случай, если всё же совпало (маловероятно, но перестрахуемся)
+                counter = 1
+                base, ext = os.path.splitext(new_name)
+                while new_name in seen_names:
+                    new_name = f"{base}_{counter}{ext}"
+                    counter += 1
+                seen_names.add(new_name)
+                
+                all_files.append((src_path, new_name))
+                stats_source[src_alias][emo_lower] += 1
 
-        random.shuffle(files)
-        n_train = int(len(files) * TRAIN_RATIO)
+        if not all_files:
+            print(f"⚠️  {emo_folder}: нет файлов ни в одном источнике!")
+            continue
 
-        for (src_path, fname) in files[:n_train]:
-            shutil.copy2(src_path, OUT_DIR / 'train' / emo_lower / fname)
-        for (src_path, fname) in files[n_train:]:
-            shutil.copy2(src_path, OUT_DIR / 'test' / emo_lower / fname)
+        random.shuffle(all_files)
+        n_train = int(len(all_files) * TRAIN_RATIO)
 
-        stats['train'][emo_lower] = n_train
-        stats['test'][emo_lower] = len(files) - n_train
+        for src_path, fname in all_files[:n_train]:
+            dst = OUT_DIR / 'train' / emo_lower / fname
+            shutil.copy2(src_path, dst)
+            stats_train[emo_lower] += 1
 
-    print("=" * 55)
-    print("  GFFD-2025 подготовлен")
-    print("=" * 55)
-    print(f"{'Эмоция':<15} {'Train':>8} {'Test':>8} {'Всего':>8}")
-    print("-" * 45)
+        for src_path, fname in all_files[n_train:]:
+            dst = OUT_DIR / 'test' / emo_lower / fname
+            shutil.copy2(src_path, dst)
+            stats_test[emo_lower] += 1
+
+        # Проверка
+        actual = len(list((OUT_DIR / 'train' / emo_lower).glob('*'))) + \
+                 len(list((OUT_DIR / 'test' / emo_lower).glob('*')))
+        expected = len(all_files)
+        if actual != expected:
+            print(f"⚠️  {emo}: ожидалось {expected}, скопировано {actual}!")
+
+    # ============================================
+    # ОТЧЁТ
+    # ============================================
+    print("=" * 70)
+    print("  GFFD-2025 — объединение CroppedDataset + raw")
+    print("=" * 70)
+
+    print(f"\n📂 Источники:")
+    for src_dir in SOURCE_DIRS:
+        src_alias = src_dir.name
+        total_src = sum(stats_source[src_alias].values())
+        if src_dir.exists():
+            print(f"   ✅ {src_alias}: {total_src} файлов")
+        else:
+            print(f"   ❌ {src_alias}: не найден!")
+    
+    print(f"\n📊 Разбивка по классам:")
+    print(f"{'Эмоция':<12} {'Train':>8} {'Test':>8} {'Всего':>8}")
+    print("-" * 40)
     total_train, total_test = 0, 0
     for emo in EMOTION_MAP.values():
-        tr = stats['train'][emo]
-        te = stats['test'][emo]
+        tr = stats_train[emo]
+        te = stats_test[emo]
         total_train += tr
         total_test  += te
-        print(f"{emo:<15} {tr:>8} {te:>8} {tr+te:>8}")
-    print("-" * 45)
-    print(f"{'ИТОГО':<15} {total_train:>8} {total_test:>8} {total_train+total_test:>8}")
-    print(f"\nСтруктура: {OUT_DIR.resolve()}")
+        print(f"{emo:<12} {tr:>8} {te:>8} {tr+te:>8}")
+    print("-" * 40)
+    print(f"{'ИТОГО':<12} {total_train:>8} {total_test:>8} {total_train+total_test:>8}")
+
+    # Детализация по источникам внутри каждой эмоции
+    print(f"\n🔍 Детализация по источникам:")
+    print(f"{'Эмоция':<12} {'Источник':<20} {'Файлов':>8}")
+    print("-" * 42)
+    for emo in EMOTION_MAP.values():
+        for src_dir in SOURCE_DIRS:
+            src_alias = src_dir.name
+            cnt = stats_source[src_alias].get(emo, 0)
+            if cnt > 0:
+                print(f"{emo:<12} {src_alias:<20} {cnt:>8}")
+    print(f"\n📁 Выходная папка: {OUT_DIR.resolve()}")
 
 if __name__ == '__main__':
     main()
