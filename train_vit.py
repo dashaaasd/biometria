@@ -47,8 +47,9 @@ def main():
     use_amp   = Config.DEVICE.type == 'cuda'
     scaler    = torch.amp.GradScaler('cuda', enabled=use_amp)
 
-    best_acc  = 0.0
-    best_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME)
+    best_f1   = 0.0
+    best_acc   = 0.0
+    best_path  = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME)
 
     AUGMENT_EPOCH = 7
 
@@ -60,24 +61,29 @@ def main():
             train_loader.dataset.dataset.transform = get_train_transform_full(Config.IMAGE_SIZE, Config.IN_CHANNELS)
             print(f"  RandomErasing включён с эпохи {epoch}")
 
-        train_loss, train_acc = run_epoch(model, train_loader, criterion,
-                                          optimizer, scaler, Config.DEVICE,
-                                          use_amp, training=True)
-        val_loss, val_acc     = run_epoch(model, val_loader, criterion,
-                                          optimizer, scaler, Config.DEVICE,
-                                          use_amp, training=False)
+        train_loss, train_acc, train_f1 = run_epoch(model, train_loader, criterion,
+                                                    optimizer, scaler, Config.DEVICE,
+                                                    use_amp, training=True, 
+                                                    num_classes=Config.NUM_CLASSES)
+        val_loss, val_acc, val_f1 = run_epoch(model, val_loader, criterion,
+                                              optimizer, scaler, Config.DEVICE,
+                                              use_amp, training=False,
+                                              num_classes=Config.NUM_CLASSES)
         scheduler.step()
 
-        print(f'  Train: loss={train_loss:.4f}  acc={train_acc:.2f}%')
-        print(f'  Val:   loss={val_loss:.4f}  acc={val_acc:.2f}%')
+        print(f'  Train: loss={train_loss:.4f}  acc={train_acc:.2f}%  f1={train_f1:.2f}%')
+        print(f'  Val:   loss={val_loss:.4f}  acc={val_acc:.2f}%  f1={val_f1:.2f}%')
 
-        if val_acc > best_acc:
+        # Сохраняем по лучшему F1
+        if val_f1 > best_f1:
+            best_f1 = val_f1
             best_acc = val_acc
             torch.save({
                 'epoch':        epoch,
                 'model_state':  model.state_dict(),
                 'optim_state':  optimizer.state_dict(),
                 'val_acc':      best_acc,
+                'val_f1':       best_f1,
                 'config': {
                     'img_size':    Config.IMAGE_SIZE,
                     'patch_size':  Config.PATCH_SIZE,
@@ -85,11 +91,11 @@ def main():
                     'dataset':     Config.DATA_PATH,
                 }
             }, best_path)
-            print(f'  ✓ Сохранена лучшая ViT-модель (val_acc={best_acc:.2f}%)')
+            print(f'  ✓ Сохранена лучшая ViT-модель (val_f1={best_f1:.2f}%, ')
 
     elapsed = time.time() - start
     print(f'\nОбучение ViT завершено за {elapsed / 60:.1f} мин')
-    print(f'Лучшая val accuracy: {best_acc:.2f}%')
+    print(f'Лучшая val F1: {best_f1:.2f}% ')
 
 
 if __name__ == '__main__':

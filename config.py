@@ -157,7 +157,7 @@ def get_val_transform(image_size, in_channels=1):
 
 
 # Активный конфиг (меняй здесь)
-#Config = ConfigFER
-Config = ConfigExpW
+Config = ConfigFER
+#Config = ConfigExpW
 
 os.makedirs(Config.MODEL_SAVE_PATH, exist_ok=True)

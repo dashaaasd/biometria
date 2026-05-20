@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 from tqdm import tqdm
-
+from sklearn.metrics import f1_score
 
 def set_seed(seed: int = 42):
     random.seed(seed)
@@ -14,7 +14,7 @@ def set_seed(seed: int = 42):
     torch.backends.cudnn.benchmark = False
 
 
-def get_scheduler(optimizer, warmup_epochs=5, total_epochs=60):
+def get_scheduler(optimizer, warmup_epochs=6, total_epochs=50):
     def lr_lambda(epoch):
         if epoch < warmup_epochs:
             return epoch / warmup_epochs
@@ -23,9 +23,13 @@ def get_scheduler(optimizer, warmup_epochs=5, total_epochs=60):
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
 
 
-def run_epoch(model, loader, criterion, optimizer, scaler, device, use_amp, training: bool):
+def run_epoch(model, loader, criterion, optimizer, scaler, device, use_amp, training: bool, num_classes: int = 7):
     model.train() if training else model.eval()
     total_loss, correct, total = 0.0, 0, 0
+    
+    # Для подсчета F1
+    all_preds = []
+    all_labels = []
 
     ctx = torch.enable_grad() if training else torch.no_grad()
     with ctx:
@@ -46,8 +50,29 @@ def run_epoch(model, loader, criterion, optimizer, scaler, device, use_amp, trai
                 scaler.update()
 
             total_loss += loss.item()
-            correct += (outputs.argmax(1) == labels).sum().item()
+            preds = outputs.argmax(1)
+            correct += (preds == labels).sum().item()
             total += labels.size(0)
-            pbar.set_postfix(loss=f'{loss.item():.4f}', acc=f'{100*correct/total:.1f}%')
+            
+            # Сохраняем предсказания и метки для F1
+            all_preds.extend(preds.detach().cpu().numpy())
+            all_labels.extend(labels.detach().cpu().numpy())
+            
+            # Считаем текущий F1 для отображения
+            if len(all_preds) > 0:
+                current_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
+                pbar.set_postfix(loss=f'{loss.item():.4f}', 
+                               f1=f'{current_f1:.4f}')
+            else:
+                pbar.set_postfix(loss=f'{loss.item():.4f}', 
+                               acc=f'{100*correct/total:.1f}%')
 
-    return total_loss / len(loader), 100 * correct / total
+    # Финальный подсчет F1 за всю эпоху
+    epoch_f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
+    
+    return total_loss / len(loader), 100 * correct / total, epoch_f1 * 100  # F1 в процентах
+
+
+def calc_f1(true_labels, preds, num_classes: int = 7):
+    """Отдельная функция для расчета F1"""
+    return f1_score(true_labels, preds, average='weighted', zero_division=0)
