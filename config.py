@@ -25,12 +25,13 @@ class ConfigFER:
     NUM_HEADS       = 8
     VAL_SPLIT       = 0.2
     NUM_WORKERS     = 4
-    SEED            = 42
+    SEED            = 52
     DROPOUT      = 0.3    
     VIT_DROPOUT  = 0.1
     DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     MODEL_CNN_NAME  = 'best_model_cnn_fer.pth'
     MODEL_VIT_NAME  = 'best_model_vit_fer.pth'
+    MODEL_VIT_NAME_DIS  = 'best_model_vit_fer_dis.pth'
     CLASS_WEIGHTS   = 'auto'
 
 
@@ -53,11 +54,13 @@ class ConfigExpW:
     NUM_WORKERS     = 4
     DROPOUT      = 0.5    
     VIT_DROPOUT  = 0.1    
-    SEED            = 42
+    SEED            = 52
     DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     MODEL_CNN_NAME  = 'best_model_cnn_expw.pth'
     MODEL_VIT_NAME  = 'best_model_vit_expw.pth'
+    MODEL_VIT_NAME_DIS  = 'best_model_vit_expw_dis.pth'
     CLASS_WEIGHTS   = 'auto'
+
 
 '''
 class ConfigGFFD:
@@ -157,7 +160,5 @@ def get_val_transform(image_size, in_channels=1):
 
 
 # Активный конфиг (меняй здесь)
-Config = ConfigFER
-#Config = ConfigExpW
-
-os.makedirs(Config.MODEL_SAVE_PATH, exist_ok=True)
+#Config = ConfigFER
+Config = ConfigExpW

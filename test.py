@@ -9,6 +9,7 @@ from config import Config
 from data import build_dataloaders
 from models.cnn_model import GhostNetV2_FER
 from models.vit_model import ViT_FER
+from models.vit_distill import ViT_Distill  # ← добавлено
 
 
 CLASS_NAMES = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
@@ -20,9 +21,9 @@ def evaluate(model, test_loader, device):
 
     with torch.no_grad():
         for images, labels in tqdm(test_loader, desc='Test'):
-            images  = images.to(device)
+            images = images.to(device)
             outputs = model(images)
-            preds   = outputs.argmax(1).cpu()
+            preds = outputs.argmax(1).cpu()
             all_preds.extend(preds.numpy())
             all_labels.extend(labels.numpy())
 
@@ -53,7 +54,7 @@ def save_confusion_matrix(all_preds, all_labels, model_name, save_path):
 
 
 def main():
-    dataset_name = os.path.basename(Config.DATA_PATH)   # кроссплатформенно
+    dataset_name = os.path.basename(Config.DATA_PATH)
 
     print(f"\n{'='*60}")
     print(f"  ТЕСТИРОВАНИЕ: {Config.DATA_PATH}")
@@ -62,7 +63,7 @@ def main():
     _, _, test_loader = build_dataloaders(Config)
 
     # ── CNN ──────────────────────────────────────────────────────
-    cnn_path  = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_CNN_NAME)
+    cnn_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_CNN_NAME)
     cnn_model = GhostNetV2_FER(
         num_classes=Config.NUM_CLASSES,
         dropout=0.3,
@@ -79,7 +80,7 @@ def main():
                           f'confusion_matrix_cnn_{dataset_name}.png')
 
     # ── ViT ──────────────────────────────────────────────────────
-    vit_path  = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME)
+    vit_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME)
     vit_model = ViT_FER(
         img_size=Config.IMAGE_SIZE,
         patch_size=Config.PATCH_SIZE,
@@ -99,14 +100,54 @@ def main():
     save_confusion_matrix(vit_preds, vit_labels, 'ViT',
                           f'confusion_matrix_vit_{dataset_name}.png')
 
+    # ── ViT_Distill ──────────────────────────────────────────────
+    vit_dis_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME_DIS)
+
+    if os.path.exists(vit_dis_path):
+        vit_dis_model = ViT_Distill(
+            img_size=Config.IMAGE_SIZE,
+            patch_size=Config.PATCH_SIZE,
+            in_channels=Config.IN_CHANNELS,
+            num_classes=Config.NUM_CLASSES,
+            embed_dim=Config.EMBED_DIM,
+            depth=Config.DEPTH,
+            num_heads=Config.NUM_HEADS,
+            dropout=Config.VIT_DROPOUT
+        ).to(Config.DEVICE)
+
+        checkpoint = torch.load(vit_dis_path, map_location=Config.DEVICE)
+        if 'model_state_dict' in checkpoint:
+            vit_dis_model.load_state_dict(checkpoint['model_state_dict'])
+        elif 'model_state' in checkpoint:
+            vit_dis_model.load_state_dict(checkpoint['model_state'])
+        else:
+            vit_dis_model.load_state_dict(checkpoint)
+
+        val_f1 = checkpoint.get('val_f1', checkpoint.get('f1', 0))
+        print(f"ViT_Distill загружена | val_f1={val_f1:.2f}%")
+
+        vit_dis_preds, vit_dis_labels = evaluate(vit_dis_model, test_loader, Config.DEVICE)
+        vit_dis_acc = print_metrics(vit_dis_preds, vit_dis_labels, 'ViT + Distillation')
+        save_confusion_matrix(vit_dis_preds, vit_dis_labels, 'ViT-Distill',
+                              f'confusion_matrix_vit_distill_{dataset_name}.png')
+    else:
+        print(f"\n⚠️ Модель дистилляции не найдена: {vit_dis_path}")
+        vit_dis_acc = None
+
     # ── Итоговое сравнение ────────────────────────────────────────
     print("\n" + "=" * 60)
-    print("ИТОГОВОЕ СРАВНЕНИЕ CNN vs ViT")
+    print("ИТОГОВОЕ СРАВНЕНИЕ: CNN vs ViT vs ViT+Distill")
     print("=" * 60)
     print(f"{'Модель':<25} {'Test Accuracy':>15}")
     print("-" * 40)
     print(f"{'CNN (GhostNetV2)':<25} {cnn_acc:>14.2f}%")
-    print(f"{'Vision Transformer':<25} {vit_acc:>14.2f}%")
+    print(f"{'Vision Transformer (ViT)':<25} {vit_acc:>14.2f}%")
+    
+    if vit_dis_acc is not None:
+        print(f"{'ViT + Distillation':<25} {vit_dis_acc:>14.2f}%")
+        print("-" * 40)
+        improvement = vit_dis_acc - vit_acc
+        print(f"{'Улучшение (Distill - ViT)':<25} {improvement:>+14.2f}%")
 
 
 if __name__ == '__main__':

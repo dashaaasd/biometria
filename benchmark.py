@@ -13,6 +13,7 @@ from config import Config
 from data import build_dataloaders
 from models.cnn_model import GhostNetV2_FER
 from models.vit_model import ViT_FER
+from models.vit_distill import ViT_Distill 
 
 CLASS_NAMES = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 
@@ -149,61 +150,72 @@ def benchmark_model(model, model_path, dataloader, device, name='Model'):
     }
 
 
-def plot_comparison(cnn_r, vit_r, save_dir, dataset_name):
-    # ── Per-class bar + radar ────────────────────────────────────
-    fig = plt.figure(figsize=(14, 5))
-
+def plot_comparison_three(cnn_r, vit_r, vit_dis_r, save_dir, dataset_name):
+    """Графики для трёх моделей"""
+    if vit_dis_r is None:
+        plot_comparison(cnn_r, vit_r, save_dir, dataset_name)
+        return
+    
+    fig = plt.figure(figsize=(16, 5))
+    
+    # Bar chart
     ax_bar = fig.add_subplot(1, 2, 1)
     x = np.arange(len(CLASS_NAMES))
-    w = 0.35
-    ax_bar.bar(x - w/2, cnn_r['per_class_acc'], w, label='CNN (GhostNetV2)', alpha=0.8)
-    ax_bar.bar(x + w/2, vit_r['per_class_acc'], w, label='ViT',              alpha=0.8)
+    w = 0.25
+    ax_bar.bar(x - w, cnn_r['per_class_acc'], w, label='CNN', alpha=0.8)
+    ax_bar.bar(x, vit_r['per_class_acc'], w, label='ViT', alpha=0.8)
+    ax_bar.bar(x + w, vit_dis_r['per_class_acc'], w, label='ViT+Distill', alpha=0.8)
     ax_bar.set_xticks(x)
     ax_bar.set_xticklabels(CLASS_NAMES, rotation=45, ha='right')
     ax_bar.set_ylabel('Accuracy (%)')
     ax_bar.set_title(f'Per-class Accuracy — {dataset_name}')
     ax_bar.legend()
     ax_bar.grid(axis='y', alpha=0.3)
-
+    
+    # Radar chart
     angles = np.linspace(0, 2 * np.pi, len(CLASS_NAMES), endpoint=False).tolist()
     angles += angles[:1]
-    cnn_v = cnn_r['per_class_acc'].tolist() + [cnn_r['per_class_acc'][0]]
-    vit_v = vit_r['per_class_acc'].tolist() + [vit_r['per_class_acc'][0]]
-
+    
     ax_rad = fig.add_subplot(1, 2, 2, polar=True)
-    ax_rad.fill(angles, cnn_v, alpha=0.25, label='CNN')
-    ax_rad.fill(angles, vit_v, alpha=0.25, label='ViT')
+    for data, label, color in zip(
+        [cnn_r['per_class_acc'], vit_r['per_class_acc'], vit_dis_r['per_class_acc']],
+        ['CNN', 'ViT', 'ViT+Distill'],
+        ['blue', 'orange', 'green']
+    ):
+        values = data.tolist() + [data[0]]
+        ax_rad.plot(angles, values, 'o-', linewidth=1.5, label=label, color=color)
+        ax_rad.fill(angles, values, alpha=0.1, color=color)
+    
     ax_rad.set_xticks(angles[:-1])
     ax_rad.set_xticklabels(CLASS_NAMES)
     ax_rad.set_title('Per-class Accuracy Radar')
     ax_rad.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
-
+    
     plt.tight_layout()
-    path1 = os.path.join(save_dir, f'per_class_{dataset_name}.png')
+    path1 = os.path.join(save_dir, f'per_class_three_{dataset_name}.png')
     plt.savefig(path1, dpi=150, bbox_inches='tight')
     plt.close()
     print(f"  Сохранено: {path1}")
-
-    # ── Confusion matrices ───────────────────────────────────────
-    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    
+    # Confusion matrices (3 rows)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     for ax, cm, title in zip(
         axes,
-        [cnn_r['confusion_matrix'], vit_r['confusion_matrix']],
-        ['CNN (GhostNetV2)', 'Vision Transformer']
+        [cnn_r['confusion_matrix'], vit_r['confusion_matrix'], vit_dis_r['confusion_matrix']],
+        ['CNN (GhostNetV2)', 'Vision Transformer (ViT)', 'ViT + Distillation']
     ):
         cm_norm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         sns.heatmap(cm_norm, annot=True, fmt='.2f', cmap='Blues',
                     xticklabels=CLASS_NAMES, yticklabels=CLASS_NAMES,
                     vmin=0, vmax=1, ax=ax)
-        ax.set_title(f'{title}\nNormalized Confusion Matrix — {dataset_name}')
+        ax.set_title(f'{title}\n{dataset_name}')
         ax.set_xlabel('Predicted')
         ax.set_ylabel('True')
     plt.tight_layout()
-    path2 = os.path.join(save_dir, f'confusion_matrices_{dataset_name}.png')
+    path2 = os.path.join(save_dir, f'confusion_matrices_three_{dataset_name}.png')
     plt.savefig(path2, dpi=150, bbox_inches='tight')
     plt.close()
     print(f"  Сохранено: {path2}")
-
 
 def main():
     dataset_name = os.path.basename(Config.DATA_PATH)
@@ -247,44 +259,97 @@ def main():
     )
     vit_results = benchmark_model(vit_model, vit_path, val_loader,
                                   Config.DEVICE, name='Vision Transformer (ViT)')
+    # ── ViT_Distill ──────────────────────────────────────────────────
+    vit_dis_path = os.path.join(Config.MODEL_SAVE_PATH, Config.MODEL_VIT_NAME_DIS)
 
-    # ── Итоговая таблица ─────────────────────────────────────────
-    print(f"\n{'='*72}")
-    print("  ИТОГОВОЕ СРАВНЕНИЕ CNN vs ViT")
-    print(f"{'='*72}")
-    print(f"{'Метрика':<35} {'CNN':>12} {'ViT':>12} {'Δ (ViT−CNN)':>12}")
-    print("-" * 72)
+    if os.path.exists(vit_dis_path):
+        vit_dis_model = ViT_Distill(
+            img_size=Config.IMAGE_SIZE,
+            patch_size=Config.PATCH_SIZE,
+            in_channels=Config.IN_CHANNELS,
+            num_classes=Config.NUM_CLASSES,
+            embed_dim=Config.EMBED_DIM,
+            depth=Config.DEPTH,
+            num_heads=Config.NUM_HEADS,
+            dropout=Config.VIT_DROPOUT
+        ).to(Config.DEVICE)
+        
+        checkpoint = torch.load(vit_dis_path, map_location=Config.DEVICE)
+        if 'model_state_dict' in checkpoint:
+            vit_dis_model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            vit_dis_model.load_state_dict(checkpoint)
+        
+        vit_dis_results = benchmark_model(vit_dis_model, vit_dis_path, val_loader,
+                                        Config.DEVICE, name='ViT + Distillation')
+    else:
+        print(f"\n⚠️ Модель дистилляции не найдена: {vit_dis_path}")
+        vit_dis_results = None
 
-    def row(label, c, v, fmt='.2f'):
-        diff = v - c
-        print(f"{label:<35} {c:>12{fmt}} {v:>12{fmt}} {diff:>+12{fmt}}")
+    # ── Итоговая таблица (3 модели) ─────────────────────────────────
+    print(f"\n{'='*90}")
+    print("  ИТОГОВОЕ СРАВНЕНИЕ: CNN vs ViT vanilla vs ViT + Distillation")
+    print(f"{'='*90}")
 
-    print("  --- Эффективность ---")
-    print(f"{'Параметры':<35} {cnn_results['total_params']:>12,} {vit_results['total_params']:>12,}")
-    if cnn_results['size_mb']:
-        row("Размер файла (MB)",    cnn_results['size_mb'],       vit_results['size_mb'])
-    row("GPU память (MB)",          cnn_results['gpu_memory_mb'], vit_results['gpu_memory_mb'], '.1f')
-    row("Латентность GPU (ms)",     cnn_results['gpu_ms'],        vit_results['gpu_ms'])
-    row("Латентность CPU (ms)",     cnn_results['cpu_ms'],        vit_results['cpu_ms'])
-    row("FPS GPU",                  cnn_results['fps_gpu'],       vit_results['fps_gpu'],       '.1f')
-    row("FPS CPU",                  cnn_results['fps_cpu'],       vit_results['fps_cpu'],       '.1f')
+    # Заголовки
+    print(f"{'Метрика':<30} {'CNN':>12} {'ViT':>12} {'ViT+Distill':>14} {'Δ Distill-ViT':>14}")
+    print("-" * 90)
+
+    def row3(label, c, v, d, fmt='.2f'):
+        diff = d - v if d is not None else 0
+        if d is not None:
+            if fmt == '.1f':
+                print(f"{label:<30} {c:>12.1f} {v:>12.1f} {d:>14.1f} {diff:>+14.1f}")
+            else:
+                print(f"{label:<30} {c:>12.2f} {v:>12.2f} {d:>14.2f} {diff:>+14.2f}")
+        else:
+            print(f"{label:<30} {c:>12.2f} {v:>12.2f} {'N/A':>14} {'N/A':>14}")
+    def row3_int(label, c, v, d):
+        if d is not None:
+            print(f"{label:<30} {c:>12,} {v:>12,} {d:>14,}")
+        else:
+            print(f"{label:<30} {c:>12,} {v:>12,} {'N/A':>14}")
+
+    print("\n  --- Эффективность ---")
+    row3_int("Параметры", cnn_results['total_params'], vit_results['total_params'], 
+            vit_dis_results['total_params'] if vit_dis_results else None)
+
+    if cnn_results['size_mb'] and vit_dis_results and vit_dis_results['size_mb']:
+        row3("Размер файла (MB)", cnn_results['size_mb'], vit_results['size_mb'], 
+            vit_dis_results['size_mb'])
+
+    row3("GPU память (MB)", cnn_results['gpu_memory_mb'], vit_results['gpu_memory_mb'],
+        vit_dis_results['gpu_memory_mb'] if vit_dis_results else None, fmt='.1f')
+    row3("Латентность GPU (ms)", cnn_results['gpu_ms'], vit_results['gpu_ms'],
+        vit_dis_results['gpu_ms'] if vit_dis_results else None)
+    row3("Латентность CPU (ms)", cnn_results['cpu_ms'], vit_results['cpu_ms'],
+        vit_dis_results['cpu_ms'] if vit_dis_results else None)
+    row3("FPS GPU", cnn_results['fps_gpu'], vit_results['fps_gpu'],
+        vit_dis_results['fps_gpu'] if vit_dis_results else None)
+    row3("FPS CPU", cnn_results['fps_cpu'], vit_results['fps_cpu'],
+        vit_dis_results['fps_cpu'] if vit_dis_results else None)
 
     print("\n  --- Качество ---")
-    row("Accuracy (%)",    cnn_results['accuracy'],    vit_results['accuracy'])
-    row("F1 Macro (%)",    cnn_results['f1_macro'],    vit_results['f1_macro'])
-    row("F1 Weighted (%)", cnn_results['f1_weighted'], vit_results['f1_weighted'])
+    row3("Accuracy (%)", cnn_results['accuracy'], vit_results['accuracy'],
+        vit_dis_results['accuracy'] if vit_dis_results else None)
+    row3("F1 Macro (%)", cnn_results['f1_macro'], vit_results['f1_macro'],
+        vit_dis_results['f1_macro'] if vit_dis_results else None)
+    row3("F1 Weighted (%)", cnn_results['f1_weighted'], vit_results['f1_weighted'],
+        vit_dis_results['f1_weighted'] if vit_dis_results else None)
 
-    print("\n  --- Per-class Accuracy ---")
-    for i, cls in enumerate(CLASS_NAMES):
-        c = cnn_results['per_class_acc'][i]
-        v = vit_results['per_class_acc'][i]
-        d = v - c
-        winner = '← ViT' if d > 1 else ('← CNN' if d < -1 else '≈')
-        print(f"  {cls:10s}: {c:.1f}% vs {v:.1f}%  (Δ={d:+.1f}% {winner})")
-
-    plot_comparison(cnn_results, vit_results, save_dir, dataset_name)
-    print(f"\nВсе графики сохранены в: {os.path.abspath(save_dir)}")
-
+    # Per-class сравнение
+    if vit_dis_results:
+        print("\n  --- Per-class Accuracy ---")
+        print(f"  {'Class':<12} {'CNN':>8} {'ViT':>8} {'ViT+Distill':>12} {'Best':>8}")
+        print("-" * 55)
+        for i, cls in enumerate(CLASS_NAMES):
+            c = cnn_results['per_class_acc'][i]
+            v = vit_results['per_class_acc'][i]
+            d = vit_dis_results['per_class_acc'][i]
+            best = max(c, v, d)
+            best_name = 'CNN' if best == c else ('ViT' if best == v else 'Distill')
+            print(f"  {cls:<12} {c:>7.1f}% {v:>7.1f}% {d:>11.1f}%  → {best_name}")
+    plot_comparison_three(cnn_results, vit_results, vit_dis_results, save_dir, dataset_name)
 
 if __name__ == '__main__':
     main()

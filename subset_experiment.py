@@ -106,7 +106,7 @@ def get_f1(model, loader, device):
             imgs = imgs.to(device)
             preds_all.extend(model(imgs).argmax(1).cpu().numpy())
             labels_all.extend(lbls.numpy())
-    return f1_score(labels_all, preds_all, average='macro') * 100
+    return f1_score(labels_all, preds_all, average='weighted') * 100
 
 
 def train_one(model, train_loader, val_loader, criterion, cfg, seed):

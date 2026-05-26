@@ -91,7 +91,7 @@ def main():
                     'dataset':     Config.DATA_PATH,
                 }
             }, best_path)
-            print(f'  ✓ Сохранена лучшая ViT-модель (val_f1={best_f1:.2f}%, ')
+            print(f'  ✓ Сохранена лучшая ViT-модель (val_f1={best_f1:.2f}%) ')
 
     elapsed = time.time() - start
     print(f'\nОбучение ViT завершено за {elapsed / 60:.1f} мин')
