@@ -25,7 +25,7 @@ class ConfigFER:
     NUM_HEADS       = 8
     VAL_SPLIT       = 0.2
     NUM_WORKERS     = 4
-    SEED            = 52
+    SEED            = 69
     DROPOUT      = 0.3    
     VIT_DROPOUT  = 0.1
     DEVICE          = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -160,5 +160,5 @@ def get_val_transform(image_size, in_channels=1):
 
 
 # Активный конфиг (меняй здесь)
-#Config = ConfigFER
-Config = ConfigExpW
+Config = ConfigFER
+#Config = ConfigExpW
